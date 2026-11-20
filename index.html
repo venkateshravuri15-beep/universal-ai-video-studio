@@ -1,82 +1,233 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Universal AI Video Studio</title>
-  <style>
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background: #0f172a;
-      color: white;
-      text-align: center;
-    }
-
-    .container {
-      max-width: 900px;
-      margin: auto;
-      padding: 60px 20px;
-    }
-
-    h1 {
-      font-size: 42px;
-      margin-bottom: 15px;
-    }
-
-    p {
-      font-size: 18px;
-      color: #cbd5e1;
-    }
-
-    .card {
-      margin-top: 40px;
-      padding: 30px;
-      background: #1e293b;
-      border-radius: 16px;
-    }
-
-    button {
-      margin-top: 20px;
-      padding: 14px 28px;
-      border: none;
-      border-radius: 10px;
-      background: #2563eb;
-      color: white;
-      font-size: 16px;
-      cursor: pointer;
-    }
-
-    button:hover {
-      background: #1d4ed8;
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Universal AI Video Studio</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#080d1b;color:#f8fafc;font-family:Arial,sans-serif}
+header{text-align:center;padding:25px 15px;background:#111b32}
+header h1{font-size:27px}
+header p{color:#aab9d0}
+main{max-width:900px;margin:auto;padding:20px 14px}
+.card{background:#121e35;border:1px solid #263653;border-radius:16px;padding:20px;margin-bottom:18px}
+.tabs{display:flex;gap:8px;flex-wrap:wrap}
+button{background:#2563eb;color:white;border:0;padding:12px 16px;border-radius:9px;cursor:pointer;margin-top:12px}
+.tabs button.active{background:#7c3aed}
+label{display:block;margin:15px 0 7px}
+input,textarea,select{width:100%;padding:13px;border-radius:9px;border:1px solid #40516d;background:#091326;color:white;font-size:15px}
+textarea{min-height:100px}
+.preview{width:100%;max-height:350px;object-fit:contain;background:#050914;border-radius:10px;margin-top:12px}
+.note{color:#aab9d0;font-size:13px;line-height:1.6}
+.hidden{display:none}
+#status{background:#0b2940;padding:12px;border-radius:8px;margin-top:12px}
+footer{text-align:center;padding:20px;color:#8495ae}
+</style>
 </head>
-
 <body>
-  <div class="container">
-    <h1>🎬 Universal AI Video Studio</h1>
+<header>
+<h1>🎬 Universal AI Video Studio</h1>
+<p>Create videos with AI — simple, powerful and free-first.</p>
+</header>
 
-    <p>
-      Create videos with AI — simple, powerful and free-first.
-    </p>
+<main>
+<div class="card">
+<h2>✨ AI Video Workspace</h2>
+<div class="tabs">
+<button class="active" onclick="mode('text',this)">Text to Video</button>
+<button onclick="mode('image',this)">Image to Video</button>
+<button onclick="mode('upload',this)">Video Upload</button>
+</div>
 
-    <div class="card">
-      <h2>AI Video Studio</h2>
-      <p>
-        Your universal AI-powered video creation platform.
-      </p>
+<section id="text">
+<label>Describe your video</label>
+<textarea id="prompt" placeholder="Describe the video you want to create..."></textarea>
+<label>Duration</label>
+<select id="duration">
+<option value="10">10 seconds</option>
+<option value="15">15 seconds</option>
+<option value="20">20 seconds</option>
+</select>
+<button onclick="createText()">Create Preview</button>
+</section>
 
-      <button onclick="startStudio()">
-        Start Creating
-      </button>
-    </div>
-  </div>
+<section id="image" class="hidden">
+<label>Select an image</label>
+<input type="file" id="imageFile" accept="image/*" onchange="loadImage()">
+<img id="imagePreview" class="preview hidden">
+<label>Describe image animation</label>
+<textarea id="imagePrompt" placeholder="Describe the movement..."></textarea>
+<button onclick="createImage()">Create Preview</button>
+</section>
 
-  <script>
-    function startStudio() {
-      alert("Universal AI Video Studio is starting!");
-    }
-  </script>
+<section id="upload" class="hidden">
+<label>Select a video</label>
+<input type="file" id="videoFile" accept="video/*" onchange="loadVideo()">
+<video id="uploadPreview" class="preview hidden" controls></video>
+</section>
+</div>
+
+<div class="card">
+<h2>🎞️ Video Preview & Download</h2>
+<div id="status">Your video preview will appear here.</div>
+<canvas id="canvas" width="1280" height="720" class="preview"></canvas>
+<video id="finalVideo" class="preview hidden" controls></video>
+<button onclick="exportVideo()">Download Video (WebM)</button>
+<p class="note">Exports a simple animated scene from your text or image. Full AI video generation requires connecting an AI video provider.</p>
+</div>
+
+<div class="card">
+<h2>🎙️ AI Voice Preview</h2>
+<label>Enter voice text</label>
+<textarea id="voiceText" placeholder="Type text to hear it spoken..."></textarea>
+<button onclick="speak()">▶ Play Voice</button>
+<button onclick="stopVoice()">Stop Voice</button>
+<p class="note">Uses the voice available in your browser. It does not create an AI voice file.</p>
+</div>
+
+<div class="card">
+<h2>🚀 Studio Features</h2>
+<p>✓ Text prompt workspace</p>
+<p>✓ Image upload and preview</p>
+<p>✓ Video upload and playback</p>
+<p>✓ Voice preview</p>
+<p>✓ WebM video export</p>
+</div>
+</main>
+
+<footer>Universal AI Video Studio · Free-first Creator Platform</footer>
+
+<script>
+let sceneText="Universal AI Video Studio";
+let sceneImage=null;
+let imageURL=null;
+
+function mode(name,btn){
+document.querySelectorAll(".tabs button").forEach(b=>b.classList.remove("active"));
+btn.classList.add("active");
+["text","image","upload"].forEach(id=>{
+document.getElementById(id).classList.toggle("hidden",id!==name);
+});
+}
+
+function status(t){document.getElementById("status").textContent=t;}
+
+function loadImage(){
+const f=document.getElementById("imageFile").files[0];
+if(!f)return;
+imageURL=URL.createObjectURL(f);
+const img=document.getElementById("imagePreview");
+img.src=imageURL;
+img.classList.remove("hidden");
+}
+
+function loadVideo(){
+const f=document.getElementById("videoFile").files[0];
+if(!f)return;
+const v=document.getElementById("uploadPreview");
+v.src=URL.createObjectURL(f);
+v.classList.remove("hidden");
+status("Video selected. Preview it above.");
+}
+
+function createText(){
+const p=document.getElementById("prompt").value.trim();
+if(!p){status("Please enter a video description.");return;}
+sceneText=p;
+sceneImage=null;
+draw();
+status("Text scene preview is ready. You can export it as a video.");
+}
+
+function createImage(){
+if(!imageURL){status("Please select an image first.");return;}
+sceneText=document.getElementById("imagePrompt").value.trim()||"Image Video";
+sceneImage=new Image();
+sceneImage.onload=()=>{
+draw();
+status("Image preview is ready. You can export it as a video.");
+};
+sceneImage.src=imageURL;
+}
+
+function draw(){
+const c=document.getElementById("canvas");
+const x=c.getContext("2d");
+x.fillStyle="#101b35";
+x.fillRect(0,0,c.width,c.height);
+if(sceneImage){
+const s=Math.max(c.width/sceneImage.width,c.height/sceneImage.height);
+const w=sceneImage.width*s,h=sceneImage.height*s;
+x.drawImage(sceneImage,(c.width-w)/2,(c.height-h)/2,w,h);
+x.fillStyle="rgba(0,0,0,.45)";
+x.fillRect(0,0,c.width,c.height);
+}else{
+const g=x.createLinearGradient(0,0,c.width,c.height);
+g.addColorStop(0,"#172554");
+g.addColorStop(1,"#581c87");
+x.fillStyle=g;
+x.fillRect(0,0,c.width,c.height);
+}
+x.fillStyle="white";
+x.textAlign="center";
+x.font="bold 48px Arial";
+x.fillText(sceneText.slice(0,90),c.width/2,c.height/2,1100);
+x.font="24px Arial";
+x.fillText("Created with Universal AI Video Studio",c.width/2,c.height-60);
+}
+
+async function exportVideo(){
+if(!window.MediaRecorder){status("Video export is not supported in this browser.");return;}
+const c=document.getElementById("canvas");
+const stream=c.captureStream(24);
+let recorder;
+try{recorder=new MediaRecorder(stream);}
+catch(e){status("Could not start video export.");return;}
+const chunks=[];
+recorder.ondataavailable=e=>{if(e.data.size)chunks.push(e.data);};
+recorder.onstop=()=>{
+const blob=new Blob(chunks,{type:"video/webm"});
+const url=URL.createObjectURL(blob);
+const v=document.getElementById("finalVideo");
+v.src=url;
+v.classList.remove("hidden");
+const a=document.createElement("a");
+a.href=url;
+a.download="universal-ai-video-studio.webm";
+a.click();
+status("Your video is ready and downloaded.");
+};
+let frame=0;
+const duration=Number(document.getElementById("duration").value);
+recorder.start();
+const timer=setInterval(()=>{
+frame++;
+draw();
+if(frame>=duration*24){
+clearInterval(timer);
+recorder.stop();
+stream.getTracks().forEach(t=>t.stop());
+}
+},1000/24);
+status("Exporting video...");
+}
+
+function speak(){
+const t=document.getElementById("voiceText").value.trim();
+if(!t){status("Enter some voice text first.");return;}
+if(!("speechSynthesis" in window)){status("Voice preview is unavailable.");return;}
+speechSynthesis.cancel();
+speechSynthesis.speak(new SpeechSynthesisUtterance(t));
+status("Playing voice preview.");
+}
+
+function stopVoice(){
+if("speechSynthesis" in window)speechSynthesis.cancel();
+status("Voice stopped.");
+}
+
+draw();
+</script>
 </body>
 </html>
